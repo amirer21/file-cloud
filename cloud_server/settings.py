@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-(fxe(^^*cve6jzk!8t7#u8ci7t$8*+%ctij98urd*+@jwo#olh
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']  # 모든 호스트 허용 (개발 환경)
 
 
 # Application definition
@@ -125,6 +125,7 @@ print(f"Media root: {MEDIA_ROOT}")
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

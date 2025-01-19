@@ -46,7 +46,7 @@
             text-align: center;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             position: relative;
-            cursor: pointer; /* 이미지 클릭 가능 표시 */
+            cursor: pointer;
         }
 
         .grid-item img {
@@ -93,12 +93,13 @@
 <body>
     <h1>File Manager</h1>
     <div class="container">
-        <div class="controls">
-            <button id="select-all">Select All</button>
-            <button id="deselect-all">Deselect All</button>
-        </div>
-        <form method="POST" action="">
+        <form method="POST" action="/download-selected/">
             {% csrf_token %}
+            <div class="controls">
+                <button type="button" id="select-all">Select All</button>
+                <button type="button" id="deselect-all">Deselect All</button>
+                <button type="submit">Download Selected</button>
+            </div>
             <div class="grid">
                 {% for image in images %}
                 <div class="grid-item" data-image="{{ image }}">
@@ -108,7 +109,6 @@
                 </div>
                 {% endfor %}
             </div>
-            <button type="submit">Download Selected</button>
         </form>
 
         <div class="videos">
@@ -122,13 +122,12 @@
     </div>
 
     <script>
-        // JavaScript for Select All and Deselect All functionality
         const selectAllButton = document.getElementById('select-all');
         const deselectAllButton = document.getElementById('deselect-all');
         const checkboxes = document.querySelectorAll('.image-checkbox');
         const gridItems = document.querySelectorAll('.grid-item');
 
-        // 전체 선택 버튼
+        // Select All
         selectAllButton.addEventListener('click', () => {
             checkboxes.forEach(checkbox => {
                 checkbox.checked = true;
@@ -136,7 +135,7 @@
             });
         });
 
-        // 전체 해제 버튼
+        // Deselect All
         deselectAllButton.addEventListener('click', () => {
             checkboxes.forEach(checkbox => {
                 checkbox.checked = false;
@@ -144,10 +143,9 @@
             });
         });
 
-        // 이미지 클릭 시 선택/해제
+        // Toggle selection on image click
         gridItems.forEach(item => {
             item.addEventListener('click', (e) => {
-                // 클릭한 대상이 체크박스가 아닌 경우만 실행
                 if (!e.target.classList.contains('image-checkbox')) {
                     const checkbox = item.querySelector('.image-checkbox');
                     checkbox.checked = !checkbox.checked;

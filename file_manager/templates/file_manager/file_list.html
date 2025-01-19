@@ -88,6 +88,29 @@
         button:hover {
             background-color: #0056b3;
         }
+
+        /* 맨위로 가기 버튼 스타일 */
+        .back-to-top {
+            position: fixed;
+            bottom: 50px;
+            right: 30px;
+            display: none;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+            text-align: center;
+            line-height: 50px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .back-to-top:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
@@ -121,11 +144,15 @@
         </div>
     </div>
 
+    <!-- 맨위로 가기 버튼 -->
+    <button class="back-to-top" id="back-to-top">&#8679;</button>
+
     <script>
         const selectAllButton = document.getElementById('select-all');
         const deselectAllButton = document.getElementById('deselect-all');
         const checkboxes = document.querySelectorAll('.image-checkbox');
         const gridItems = document.querySelectorAll('.grid-item');
+        const backToTopButton = document.getElementById('back-to-top');
 
         // Select All
         selectAllButton.addEventListener('click', () => {
@@ -152,6 +179,19 @@
                     item.classList.toggle('selected', checkbox.checked);
                 }
             });
+        });
+
+        // 맨위로 가기 버튼 제어
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 200) {
+                backToTopButton.style.display = 'block';
+            } else {
+                backToTopButton.style.display = 'none';
+            }
+        });
+
+        backToTopButton.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     </script>
 </body>

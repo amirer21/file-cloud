@@ -39,3 +39,8 @@ def download_selected(request):
         return response
 
     return HttpResponse("Invalid request method", status=400)
+
+
+def gallery(request):
+    return render(request, 'file_manager/gallery.html')
+

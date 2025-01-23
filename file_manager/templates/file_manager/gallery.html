@@ -140,10 +140,41 @@
             transform: scale(1.05); /* 확대 효과 */
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7); /* 호버 시 그림자 강조 */
         }
+
+        .button-container {
+            margin: 20px 0;
+            text-align: center; /* 버튼을 가운데 정렬 */
+        }
+
+        .download-button {
+            display: inline-block;
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            background-color: #007bff;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.3s, transform 0.2s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .download-button:hover {
+            background-color: #0056b3; /* 호버 시 색상 변경 */
+            transform: scale(1.05); /* 약간 확대 */
+        }
+
+        .download-button:active {
+            transform: scale(0.98); /* 클릭 시 살짝 축소 */
+        }
     </style>
 </head>
 <body>
     <h1>4 Waves Gallery</h1>
+    <!-- 다운로드 버튼 추가 -->
+    <div class="button-container">
+        <a href="http://www.devmiro.co.kr/download-list/" class="download-button">Download List</a>
+    </div>
 
     <div class="image-container">
         <img src="{% static 'images/gallery_main.jpg' %}" alt="Main Gallery Image">

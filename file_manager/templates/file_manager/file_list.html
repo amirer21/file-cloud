@@ -32,6 +32,29 @@
             align-items: center;
         }
 
+        /* 로딩 스피너 스타일 */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #ddd;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes spin {
+            0% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+            100% {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -52,7 +75,15 @@
         .grid-item img {
             width: 100%;
             height: auto;
-            display: block;
+            display: none; /* 로드 중일 때 숨김 */
+        }
+
+        .grid-item.loaded img {
+            display: block; /* 로드 완료 후 표시 */
+        }
+
+        .grid-item.loaded .loading-spinner {
+            display: none; /* 로드 완료 후 스피너 숨김 */
         }
 
         .grid-item p {
@@ -126,8 +157,9 @@
             <div class="grid">
                 {% for image in images %}
                 <div class="grid-item" data-image="{{ image }}">
+                    <div class="loading-spinner"></div>
                     <input type="checkbox" name="selected_images" value="{{ image }}" class="image-checkbox">
-                    <img src="/media/{{ image }}" alt="{{ image }}" style="width: 200px; height: auto; margin: 10px;">
+                    <img src="/media/{{ image }}" alt="{{ image }}" style="width: 200px; height: auto; margin: 10px;" class="image">
                     <p>{{ image }}</p>
                 </div>
                 {% endfor %}
@@ -192,6 +224,29 @@
 
         backToTopButton.addEventListener('click', () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+        const gridItems = document.querySelectorAll('.grid-item');
+
+        gridItems.forEach(item => {
+                const img = item.querySelector('img');
+                const spinner = item.querySelector('.loading-spinner');
+
+                // 이미지 로딩 이벤트
+                img.onload = () => {
+                    item.classList.add('loaded'); // 로드 완료 클래스 추가
+                };
+
+                // 이미지 로딩 오류 처리 (옵션)
+                img.onerror = () => {
+                    spinner.style.display = 'none'; // 오류 시 스피너 제거
+                    item.querySelector('p').textContent = 'Failed to load image';
+                };
+
+                // 강제로 이미지를 로드하여 이벤트 트리거
+                img.src = img.src;
+            });
         });
     </script>
 </body>

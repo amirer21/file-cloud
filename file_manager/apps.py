@@ -8,16 +8,18 @@ class FileManagerConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'file_manager'
 
-    def ready(self):
-        # 서버 시작 시 변환 작업 수행
-        self.perform_conversion_at_startup()
+    # def ready(self):
+    #     # 서버 시작 시 변환 작업 수행
+    #     self.perform_conversion_at_startup()
 
     def perform_conversion_at_startup(self):
         """
         서버 시작 시 NEF 파일 변환 작업을 수행합니다.
         """
         print("Starting NEF to JPG conversion...")
-        BASE_DIR = r"E:\사진 정리 64(2025.01 피아노)"  # 원본 NEF 파일 경로
+        #BASE_DIR = "/mnt/e/사진 정리 64(2025.01 피아노)"  # 원본 NEF 파일 경로
+        #r"E:\내보내기\2025-01-피아노"
+        BASE_DIR = "/mnt/e/내보내기/2025-01-피아노"
         OUTPUT_DIR = settings.MEDIA_ROOT  # 변환된 파일 저장 경로
 
         # 저장 경로가 없으면 생성

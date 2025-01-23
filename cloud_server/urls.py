@@ -26,3 +26,5 @@ urlpatterns = [
 
 if settings.DEBUG:  # 개발 환경에서만 적용
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    #r"E:\내보내기\2025-01-피아노",  # Windows 경로를 Raw 문자열로 추가
+    #urlpatterns += static(settings.MEDIA_URL, document_root="/mnt/e/내보내기/2025-01-피아노")

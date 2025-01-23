@@ -127,7 +127,7 @@
                 {% for image in images %}
                 <div class="grid-item" data-image="{{ image }}">
                     <input type="checkbox" name="selected_images" value="{{ image }}" class="image-checkbox">
-                    <img src="{{ MEDIA_URL }}{{ image }}" alt="{{ image }}">
+                    <img src="/media/{{ image }}" alt="{{ image }}" style="width: 200px; height: auto; margin: 10px;">
                     <p>{{ image }}</p>
                 </div>
                 {% endfor %}

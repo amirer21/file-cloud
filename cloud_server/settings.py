@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-(fxe(^^*cve6jzk!8t7#u8ci7t$8*+%ctij98urd*+@jwo#olh
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']  # 모든 호스트 허용 (개발 환경)
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'devmiro.co.kr']
 
 
 # Application definition
@@ -116,7 +116,8 @@ USE_TZ = True
 
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+#MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = '/mnt/e/내보내기/2025-01-피아노'
 print(f"Media root: {MEDIA_ROOT}")
 #MEDIA_ROOT = r"C:\Users\amire\python_workspace\HongCloud\cloud_server\media"
                 
@@ -124,7 +125,11 @@ print(f"Media root: {MEDIA_ROOT}")
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+    "/mnt/e/내보내기/2025-01-피아노",  # Windows 경로를 Raw 문자열로 추가
+    "/home/hong/python-workspace/file-cloud",  # 실제 경로 추가
+    ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type

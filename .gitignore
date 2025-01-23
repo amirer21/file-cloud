@@ -174,3 +174,4 @@ cython_debug/
 media/
 static/images/
 staticfiles/
+images/

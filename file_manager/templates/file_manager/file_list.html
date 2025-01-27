@@ -142,11 +142,43 @@
         .back-to-top:hover {
             background-color: #0056b3;
         }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background-color: #f0f0f0;
+            margin: 0 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .tab.active {
+            background-color: #007bff;
+            color: white;
+        }
+
     </style>
 </head>
 <body>
     <h1>File Manager</h1>
     <div class="container">
+        <!-- 카테고리 탭 -->
+        <div class="tabs">
+            <!-- <div class="tab active" data-category="all">All</div> -->
+            <div class="tab" data-category="4waves">4 Waves</div>
+            <div class="tab" data-category="hoon">태훈</div>
+            <div class="tab" data-category="hari">하리</div>
+            <div class="tab" data-category="jaelin">제린</div>
+            <div class="tab" data-category="soyeon">소연</div>
+        </div>
+
         <form method="POST" action="/download-selected/">
             {% csrf_token %}
             <div class="controls">
@@ -155,18 +187,18 @@
                 <button type="submit">Download Selected</button>
             </div>
             <div class="grid">
+                {% for category, images in images_by_category.items %}
                 {% for image in images %}
-                <div class="grid-item" data-image="{{ image }}">
+                <div class="grid-item" data-category="{{ category }}">
                     <!-- 로딩 스피너 추가 -->
                     <div class="loading-spinner"></div>
-
-                    <!-- <p>Image Path: /static/images/{{ image }}</p> 디버깅용 -->
-                    <img src="/static/{{ image }}" alt="{{ image }}" style="width: 200px; height: auto; margin: 10px;" class="image">
-                    <!-- <p>{{ image }}</p> -->
-
+    
+                    <img src="/static/images/{{ category }}/{{ image }}" alt="{{ image }}" style="width: 200px; height: auto; margin: 10px;" class="image">
+    
                     <!-- 체크박스 추가 -->
-                    <input type="checkbox" name="selected_images" value="{{ image }}" class="image-checkbox">
+                    <input type="checkbox" name="selected_images" value="{{ category }}/{{ image }}" class="image-checkbox">
                 </div>
+                {% endfor %}
                 {% endfor %}
             </div>
         </form>
@@ -190,6 +222,8 @@
         const checkboxes = document.querySelectorAll('.image-checkbox');
         const gridItems = document.querySelectorAll('.grid-item');
         const backToTopButton = document.getElementById('back-to-top');
+        // 탭 클릭 시 필터링
+        const tabs = document.querySelectorAll('.tab');
 
         // Select All
         selectAllButton.addEventListener('click', () => {
@@ -251,6 +285,27 @@
 
                 // 강제로 이미지를 로드하여 이벤트 트리거
                 img.src = img.src;
+            });
+        });
+
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // 모든 탭의 active 클래스 제거
+                tabs.forEach(t => t.classList.remove('active'));
+                // 클릭된 탭에 active 클래스 추가
+                tab.classList.add('active');
+
+                const category = tab.dataset.category;
+
+                // 모든 이미지 숨기기 후 선택된 카테고리만 보이기
+                gridItems.forEach(item => {
+                    if (category === 'all' || item.dataset.category === category) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
             });
         });
     </script>

@@ -1,5 +1,6 @@
 import os
 from os import listdir
+from os.path import join, isfile, isdir
 
 import random
 from django.http import HttpResponse, FileResponse
@@ -31,19 +32,34 @@ def protected_download_list(request):
             'error_message': 'Kakao authentication failed. Please log in again.'
         }, status=403)
 
-    image_dir = '/home/hong/python-workspace/file-cloud/staticfiles/'  # 이미지 디렉터리 수정
-    
-    try:
-        # 이미지 파일 목록 가져오기
-        images = [f for f in listdir(image_dir) if f.endswith(('.jpg', '.png', '.gif'))]
-    except FileNotFoundError:
-        images = []  # 경로가 없을 경우 빈 리스트 반환
-        print("Error: Image directory not found")
+    # 이미지 루트 디렉터리 설정
+    image_dir = '/home/hong/python-workspace/file-cloud/static/images/'
+    categories = ["4waves", "hoon", "hari", "jaelin", "soyeon"]  # 탭에 해당하는 폴더 이름
 
-    # 로그인 성공한 사용자에게 file_list.html 렌더링
+    # 카테고리별 이미지 리스트 저장
+    images_by_category = {}
+
+    # 각 카테고리 폴더에서 이미지 수집
+    for category in categories:
+        category_path = join(image_dir, category)
+        if isdir(category_path):  # 폴더가 존재하면
+            images_by_category[category] = [
+                f for f in listdir(category_path) 
+                if isfile(join(category_path, f)) and f.endswith(('.jpg', '.png', '.gif'))
+            ]
+        else:
+            images_by_category[category] = []  # 폴더가 없으면 빈 리스트
+
+    # 분류되지 않은 루트 이미지를 추가
+    # images_by_category["root"] = [
+    #     f for f in listdir(image_dir) 
+    #     if isfile(join(image_dir, f)) and f.endswith(('.jpg', '.png', '.gif'))
+    # ]
+
+    # 렌더링
     return render(request, 'file_manager/file_list.html', {
-        'user': request.user,  # 사용자 정보 전달
-        'images': images       # 이미지 파일 리스트 전달
+        'user': request.user,
+        'images_by_category': images_by_category  # 카테고리별 이미지 전달
     })
     
 

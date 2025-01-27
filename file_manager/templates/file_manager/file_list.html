@@ -157,10 +157,15 @@
             <div class="grid">
                 {% for image in images %}
                 <div class="grid-item" data-image="{{ image }}">
+                    <!-- 로딩 스피너 추가 -->
                     <div class="loading-spinner"></div>
+
+                    <!-- <p>Image Path: /static/images/{{ image }}</p> 디버깅용 -->
+                    <img src="/static/{{ image }}" alt="{{ image }}" style="width: 200px; height: auto; margin: 10px;" class="image">
+                    <!-- <p>{{ image }}</p> -->
+
+                    <!-- 체크박스 추가 -->
                     <input type="checkbox" name="selected_images" value="{{ image }}" class="image-checkbox">
-                    <img src="/media/{{ image }}" alt="{{ image }}" style="width: 200px; height: auto; margin: 10px;" class="image">
-                    <p>{{ image }}</p>
                 </div>
                 {% endfor %}
             </div>

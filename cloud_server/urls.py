@@ -22,9 +22,12 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('file_manager.urls')),
+    path('accounts/', include('social_django.urls', namespace='social')),  # 소셜 로그인 경로
+    path('download-list/', include('file_manager.urls')),  # 다운로드 페이지
 ]
 
 if settings.DEBUG:  # 개발 환경에서만 적용
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     #r"E:\내보내기\2025-01-피아노",  # Windows 경로를 Raw 문자열로 추가
     #urlpatterns += static(settings.MEDIA_URL, document_root="/mnt/e/내보내기/2025-01-피아노")

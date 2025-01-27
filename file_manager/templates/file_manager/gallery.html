@@ -173,8 +173,14 @@
     <h1>4 Waves Gallery</h1>
     <!-- 다운로드 버튼 추가 -->
     <div class="button-container">
-        <a href="http://www.devmiro.co.kr/download-list/" class="download-button">Download List</a>
+        <!-- <a href="http://www.devmiro.co.kr/download-list/" class="download-button">Download List</a> -->
+        <!-- <a href="{% url 'download_list' %}" class="download-button">Download List</a> -->
+        <a href="{% url 'social:begin' 'kakao' %}" class="download-button">Download List(Login with Kakao)</a>
     </div>
+    <!-- <div class="button-container">
+        <a href="/accounts/oauth/kakao/login/" class="download-button">Download List</a>
+    </div> -->
+   
 
     <div class="image-container">
         <img src="{% static 'images/gallery_main.jpg' %}" alt="Main Gallery Image">

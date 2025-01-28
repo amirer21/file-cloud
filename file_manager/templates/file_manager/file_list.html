@@ -214,6 +214,7 @@
             text-decoration: underline;
         }
 
+        
     </style>
 </head>
 <body>
@@ -238,10 +239,19 @@
         <form method="POST" action="/download-selected/">
             {% csrf_token %}
             <div class="controls">
-                <button type="button" id="select-all">Select All</button>
-                <button type="button" id="deselect-all">Deselect All</button>
-                <button type="submit">Download Selected</button>
+                <button type="button" id="select-all">전체 선택</button>
+                <button type="button" id="deselect-all">전체 선택 해제</button>
+                <button type="submit" id="download-button">선택 다운로드</button>
             </div>
+
+            <!-- 다운로드 진행 상태를 표시할 로딩바 -->
+            <div id="progress-container">
+                <p id="progress-text">다운로드 받을 파일을 선택하세요.</p>
+                <div id="progress-bar-wrapper">
+                    <div id="progress-bar"></div>
+                </div>
+            </div>
+            
             <div class="grid">
                 {% for category, images in images_by_category.items %}
                 {% for image in images %}
@@ -280,30 +290,37 @@
         const backToTopButton = document.getElementById('back-to-top');
         // 탭 클릭 시 필터링
         const tabs = document.querySelectorAll('.tab');
+        let activeCategory = "4waves"; // 기본값: "4waves"
 
         // Select All
-        selectAllButton.addEventListener('click', () => {
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = true;
-                checkbox.closest('.grid-item').classList.add('selected');
+        selectAllButton.addEventListener("click", () => {
+            gridItems.forEach(item => {
+                if (item.dataset.category === activeCategory) {
+                    const checkbox = item.querySelector(".image-checkbox");
+                    checkbox.checked = true;
+                    item.classList.add("selected");
+                }
             });
         });
 
         // Deselect All
-        deselectAllButton.addEventListener('click', () => {
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-                checkbox.closest('.grid-item').classList.remove('selected');
+        deselectAllButton.addEventListener("click", () => {
+            gridItems.forEach(item => {
+                if (item.dataset.category === activeCategory) {
+                    const checkbox = item.querySelector(".image-checkbox");
+                    checkbox.checked = false;
+                    item.classList.remove("selected");
+                }
             });
         });
 
         // Toggle selection on image click
         gridItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                if (!e.target.classList.contains('image-checkbox')) {
-                    const checkbox = item.querySelector('.image-checkbox');
+            item.addEventListener("click", (e) => {
+                if (!e.target.classList.contains("image-checkbox")) {
+                    const checkbox = item.querySelector(".image-checkbox");
                     checkbox.checked = !checkbox.checked;
-                    item.classList.toggle('selected', checkbox.checked);
+                    item.classList.toggle("selected", checkbox.checked);
                 }
             });
         });
@@ -321,46 +338,52 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
 
+        
         document.addEventListener('DOMContentLoaded', () => {
-        const gridItems = document.querySelectorAll('.grid-item');
+            const gridItems = document.querySelectorAll('.grid-item');
 
-        gridItems.forEach(item => {
-                const img = item.querySelector('img');
-                const spinner = item.querySelector('.loading-spinner');
+            gridItems.forEach(item => {
+                    const img = item.querySelector('img');
+                    const spinner = item.querySelector('.loading-spinner');
 
-                // 이미지 로딩 이벤트
-                img.onload = () => {
-                    item.classList.add('loaded'); // 로드 완료 클래스 추가
-                };
+                    // 이미지 로딩 이벤트
+                    img.onload = () => {
+                        item.classList.add('loaded'); // 로드 완료 클래스 추가
+                    };
 
-                // 이미지 로딩 오류 처리 (옵션)
-                img.onerror = () => {
-                    spinner.style.display = 'none'; // 오류 시 스피너 제거
-                    item.querySelector('p').textContent = 'Failed to load image';
-                };
+                    // 이미지 로딩 오류 처리 (옵션)
+                    img.onerror = () => {
+                        spinner.style.display = 'none'; // 오류 시 스피너 제거
+                        item.querySelector('p').textContent = 'Failed to load image';
+                    };
 
-                // 강제로 이미지를 로드하여 이벤트 트리거
-                img.src = img.src;
-            });
+                    // 강제로 이미지를 로드하여 이벤트 트리거
+                    img.src = img.src;
+                });
         });
 
+        // 초기 로드 시 활성화된 카테고리 처리
+        gridItems.forEach(item => {
+            item.style.display = item.dataset.category === activeCategory ? "block" : "none"; // 기본적으로 4waves 이미지만 표시
+        });
 
         tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                // 모든 탭의 active 클래스 제거
-                tabs.forEach(t => t.classList.remove('active'));
+            tab.addEventListener("click", () => {
+                // 모든 탭에서 active 클래스 제거
+                tabs.forEach(t => t.classList.remove("active"));
                 // 클릭된 탭에 active 클래스 추가
-                tab.classList.add('active');
+                tab.classList.add("active");
 
-                const category = tab.dataset.category;
+                // 현재 활성화된 탭의 카테고리 업데이트
+                activeCategory = tab.dataset.category;
 
-                // 모든 이미지 숨기기 후 선택된 카테고리만 보이기
+                // 체크박스 초기화
                 gridItems.forEach(item => {
-                    if (category === 'all' || item.dataset.category === category) {
-                        item.style.display = 'block';
-                    } else {
-                        item.style.display = 'none';
-                    }
+                    const checkbox = item.querySelector(".image-checkbox");
+                    checkbox.checked = false;
+                    item.classList.remove("selected");
+                    item.style.display =
+                        item.dataset.category === activeCategory ? "block" : "none"; // 현재 탭의 이미지만 표시
                 });
             });
         });

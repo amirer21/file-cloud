@@ -15,6 +15,7 @@ from django.utils.timezone import now
 import requests
 import logging
 from .models import VisitorLog
+from .models import UserActionLog
 
 logger = logging.getLogger(__name__)
 
@@ -91,24 +92,43 @@ def protected_download_list(request):
 
 def download_selected(request):
     if request.method == "POST":
-        selected_images = request.POST.getlist('selected_images')
-        #base_dir = "/mnt/e/사진 정리 64(2025.01 피아노)"
-        base_dir = "/mnt/e/내보내기/2025-01-피아노"
+        selected_images = request.POST.getlist("selected_images")
 
-        # Create a ZIP file in memory
+        # 실제 파일이 저장된 디렉터리
+        base_dir = "/home/hong/python-workspace/file-cloud/staticfiles"
+
+        # 선택된 파일이 없을 경우 오류 메시지 반환
+        if not selected_images:
+            return HttpResponse("No files selected.", status=400)
+
+        # 사용자 로그 기록
+        ip_address = get_client_ip(request)
+        user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
+        file_names = ", ".join(selected_images)  # 쉼표로 파일 이름 연결
+        UserActionLog.objects.create(
+            ip_address=ip_address,
+            action_type="Download",
+            file_names=file_names,
+            user_agent=user_agent,
+        )
+
+        # ZIP 파일 생성
         zip_buffer = BytesIO()
-        with ZipFile(zip_buffer, 'w') as zip_file:
-            for image in selected_images:
-                nef_path = os.path.join(base_dir, image.replace('.jpg', '.NEF'))
-                if os.path.exists(nef_path):
-                    zip_file.write(nef_path, arcname=os.path.basename(nef_path))
+        with ZipFile(zip_buffer, "w") as zip_file:
+            for image_path in selected_images:
+                full_path = os.path.join(base_dir, image_path)  # 실제 파일 경로 생성
+                if os.path.exists(full_path):
+                    zip_file.write(full_path, arcname=os.path.basename(full_path))  # 파일 이름만 포함
+                else:
+                    logger.warning(f"File not found: {full_path}")  # 파일이 없을 경우 경고 로그
 
         zip_buffer.seek(0)
-        response = HttpResponse(zip_buffer, content_type='application/zip')
-        response['Content-Disposition'] = 'attachment; filename=selected_images.zip'
+        response = HttpResponse(zip_buffer, content_type="application/zip")
+        response["Content-Disposition"] = "attachment; filename=selected_images.zip"
         return response
 
     return HttpResponse("Invalid request method", status=400)
+
 
 
 def gallery(request):
@@ -150,5 +170,6 @@ def get_client_ip(request):
     return ip
 
 def visitor_logs(request):
-    logs = VisitorLog.objects.order_by('-visit_time')[:50]  # 최근 50개 방문 기록
-    return render(request, 'file_manager/visitor_logs.html', {'logs': logs})
+    visitor_logs = VisitorLog.objects.order_by("-visit_time")[:50]
+    user_logs = UserActionLog.objects.order_by("-action_time")[:50]
+    return render(request, "file_manager/visitor_logs.html", {"visitor_logs": visitor_logs, "user_logs": user_logs})

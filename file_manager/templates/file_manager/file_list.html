@@ -50,8 +50,9 @@
         .controls {
             margin-bottom: 20px;
             display: flex;
-            justify-content: space-between;
+            justify-content: center; /* 가운데 정렬 */
             align-items: center;
+            gap: 15px; /* 버튼 간 간격 추가 */
         }
 
         /* 로딩 스피너 스타일 */
@@ -186,6 +187,32 @@
             color: white;
         }
 
+        .footer {
+            width: 100%;
+            background-color: #222;
+            color: #f5f5f5;
+            text-align: center;
+            padding: 15px 0;
+            margin-top: 40px;
+            font-size: 0.9rem;
+            border-top: 2px solid #ffd700;
+        }
+
+        .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .footer a {
+            color: #ffd700;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
 
     </style>
 </head>
@@ -193,7 +220,7 @@
     <h1 style="display: flex; justify-content: center; align-items: center; gap: 20px;">
         <a href="/" class="home-button">Home</a>
         <a href="/" style="color: white; text-decoration: none;">
-            Dev Hong Cloud
+            Hong Cloud
         </a>        
     </h1>
     
@@ -339,4 +366,16 @@
         });
     </script>
 </body>
+
+<!-- 웹 버전 및 개발자 정보 -->
+<footer class="footer">
+    <div class="footer-content">
+        <p>📌 <strong>Version : </strong> v1.0.0</p>
+        <p>💻 <strong>Software Engineer :</strong> Seunghak Hong </p>
+        <p>🐙 <strong>GitHub : </strong> <a href="https://github.com/amirer21" target="_blank">github.com/amirer21</a></p>
+        <p>✍ <strong>Blog : </strong> <a href="https://amirer21.github.io/" target="_blank">amirer21.github.io</a></p>
+    </div>
+</footer>
+
+
 </html>

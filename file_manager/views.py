@@ -3,6 +3,7 @@ from os import listdir
 from os.path import join, isfile, isdir
 
 import random
+from django.http import HttpRequest
 from django.http import HttpResponse, FileResponse
 from django.shortcuts import render
 from django.conf import settings
@@ -10,8 +11,10 @@ from zipfile import ZipFile
 from io import BytesIO
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
+from django.utils.timezone import now
 import requests
 import logging
+from .models import VisitorLog
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +28,7 @@ def login_view(request):
 
 @login_required
 def protected_download_list(request):
+    log_visitor(request)  # 방문자 정보 저장
     kakao_token = request.user.social_auth.get(provider='kakao').extra_data.get('access_token', None)
 
     if not kakao_token:
@@ -108,6 +112,7 @@ def download_selected(request):
 
 
 def gallery(request):
+    log_visitor(request)  # 방문자 정보 저장
     return render(request, 'file_manager/gallery.html')
 
 
@@ -126,4 +131,24 @@ def gallery_view(request):
     return render(request, 'file_manager/gallery.html', context)
 
 
+def log_visitor(request: HttpRequest):
+    """ 방문자 정보를 기록하는 함수 """
+    ip_address = get_client_ip(request)
+    user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
 
+    # 데이터베이스에 저장
+    VisitorLog.objects.create(ip_address=ip_address, user_agent=user_agent, visit_time=now())
+
+
+def get_client_ip(request):
+    """ 사용자의 실제 IP 주소 가져오기 """
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+def visitor_logs(request):
+    logs = VisitorLog.objects.order_by('-visit_time')[:50]  # 최근 50개 방문 기록
+    return render(request, 'file_manager/visitor_logs.html', {'logs': logs})

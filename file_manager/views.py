@@ -1,7 +1,9 @@
 import os
 from os import listdir
+from os.path import join, isfile, isdir
 
 import random
+from django.http import HttpRequest
 from django.http import HttpResponse, FileResponse
 from django.shortcuts import render
 from django.conf import settings
@@ -9,8 +11,10 @@ from zipfile import ZipFile
 from io import BytesIO
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
+from django.utils.timezone import now
 import requests
 import logging
+from .models import VisitorLog
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +28,7 @@ def login_view(request):
 
 @login_required
 def protected_download_list(request):
+    log_visitor(request)  # 방문자 정보 저장
     kakao_token = request.user.social_auth.get(provider='kakao').extra_data.get('access_token', None)
 
     if not kakao_token:
@@ -31,19 +36,34 @@ def protected_download_list(request):
             'error_message': 'Kakao authentication failed. Please log in again.'
         }, status=403)
 
-    image_dir = '/home/hong/python-workspace/file-cloud/staticfiles/'  # 이미지 디렉터리 수정
-    
-    try:
-        # 이미지 파일 목록 가져오기
-        images = [f for f in listdir(image_dir) if f.endswith(('.jpg', '.png', '.gif'))]
-    except FileNotFoundError:
-        images = []  # 경로가 없을 경우 빈 리스트 반환
-        print("Error: Image directory not found")
+    # 이미지 루트 디렉터리 설정
+    image_dir = '/home/hong/python-workspace/file-cloud/static/images/'
+    categories = ["4waves", "hoon", "hari", "jaelin", "soyeon"]  # 탭에 해당하는 폴더 이름
 
-    # 로그인 성공한 사용자에게 file_list.html 렌더링
+    # 카테고리별 이미지 리스트 저장
+    images_by_category = {}
+
+    # 각 카테고리 폴더에서 이미지 수집
+    for category in categories:
+        category_path = join(image_dir, category)
+        if isdir(category_path):  # 폴더가 존재하면
+            images_by_category[category] = [
+                f for f in listdir(category_path) 
+                if isfile(join(category_path, f)) and f.endswith(('.jpg', '.png', '.gif'))
+            ]
+        else:
+            images_by_category[category] = []  # 폴더가 없으면 빈 리스트
+
+    # 분류되지 않은 루트 이미지를 추가
+    # images_by_category["root"] = [
+    #     f for f in listdir(image_dir) 
+    #     if isfile(join(image_dir, f)) and f.endswith(('.jpg', '.png', '.gif'))
+    # ]
+
+    # 렌더링
     return render(request, 'file_manager/file_list.html', {
-        'user': request.user,  # 사용자 정보 전달
-        'images': images       # 이미지 파일 리스트 전달
+        'user': request.user,
+        'images_by_category': images_by_category  # 카테고리별 이미지 전달
     })
     
 
@@ -92,6 +112,7 @@ def download_selected(request):
 
 
 def gallery(request):
+    log_visitor(request)  # 방문자 정보 저장
     return render(request, 'file_manager/gallery.html')
 
 
@@ -110,4 +131,24 @@ def gallery_view(request):
     return render(request, 'file_manager/gallery.html', context)
 
 
+def log_visitor(request: HttpRequest):
+    """ 방문자 정보를 기록하는 함수 """
+    ip_address = get_client_ip(request)
+    user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
 
+    # 데이터베이스에 저장
+    VisitorLog.objects.create(ip_address=ip_address, user_agent=user_agent, visit_time=now())
+
+
+def get_client_ip(request):
+    """ 사용자의 실제 IP 주소 가져오기 """
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+def visitor_logs(request):
+    logs = VisitorLog.objects.order_by('-visit_time')[:50]  # 최근 50개 방문 기록
+    return render(request, 'file_manager/visitor_logs.html', {'logs': logs})

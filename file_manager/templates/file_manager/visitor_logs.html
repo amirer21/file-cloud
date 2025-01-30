@@ -9,6 +9,7 @@
         th, td { padding: 10px; border: 1px solid #ddd; }
         th { background-color: #333; color: white; }
         tr:nth-child(even) { background-color: #f9f9f9; }
+        a { text-decoration: none; color: blue; }
     </style>
 </head>
 <body>
@@ -19,7 +20,14 @@
         <thead>
             <tr>
                 <th>IP 주소</th>
-                <th>디바이스 정보</th>
+                <th>브라우저</th>
+                <th>운영체제</th>
+                <th>국가</th>
+                <th>도시</th>
+                <th>리퍼러 URL</th>
+                <th>요청 URL</th>
+                <th>HTTP 메서드</th>
+                <th>세션 ID</th>
                 <th>방문 시간</th>
             </tr>
         </thead>
@@ -27,12 +35,29 @@
             {% for log in visitor_logs %}
             <tr>
                 <td>{{ log.ip_address }}</td>
-                <td>{{ log.user_agent }}</td>
+                <td>{{ log.browser }}</td>
+                <td>{{ log.operating_system }}</td>
+                <td>{{ log.country }}</td>
+                <td>{{ log.city }}</td>
+                <td><a href="{{ log.referer_url }}" target="_blank">{{ log.referer_url|default:"-" }}</a></td>
+                <td>{{ log.request_url }}</td>
+                <td>{{ log.http_method }}</td>
+                <td>{{ log.session_id }}</td>
                 <td>{{ log.visit_time }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <div>
+        {% if visitor_logs.has_previous %}
+            <a href="?visitor_page={{ visitor_logs.previous_page_number }}">이전</a>
+        {% endif %}
+        <span>페이지 {{ visitor_logs.number }} / {{ visitor_logs.paginator.num_pages }}</span>
+        {% if visitor_logs.has_next %}
+            <a href="?visitor_page={{ visitor_logs.next_page_number }}">다음</a>
+        {% endif %}
+    </div>
 
     <h2>사용자 행위 로그</h2>
     <table>
@@ -55,5 +80,16 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <div>
+        {% if user_logs.has_previous %}
+            <a href="?user_page={{ user_logs.previous_page_number }}">이전</a>
+        {% endif %}
+        <span>페이지 {{ user_logs.number }} / {{ user_logs.paginator.num_pages }}</span>
+        {% if user_logs.has_next %}
+            <a href="?user_page={{ user_logs.next_page_number }}">다음</a>
+        {% endif %}
+    </div>
+
 </body>
 </html>

@@ -179,3 +179,6 @@ def activate_user(backend, user, response, *args, **kwargs):
     if user:
         user.is_active = True
         user.save()
+
+
+GEOIP_PATH = '/usr/share/GeoIP/'

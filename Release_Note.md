@@ -75,12 +75,62 @@
 
 ---
 
+
+### **✅ Version 1.0.3 (Visitor Logs & GeoIP2 Integration)**
+**🎯 목표:** 방문자 추적 기능 강화 및 GeoIP2 기반 위치 정보 추가  
+
+#### **1️⃣ 방문자 로그(VisitorLog) 기능 확장**  
+- 기존 **IP 주소 및 User-Agent 정보** 저장 기능에서 **추가 필드** 지원  
+- 새로운 **로그 필드 추가**:  
+  - `browser`: 방문자의 브라우저 정보  
+  - `operating_system`: 방문자의 OS 정보  
+  - `country`: GeoIP2를 사용한 국가 정보  
+  - `city`: GeoIP2를 사용한 도시 정보  
+  - `referer_url`: 사용자가 어디에서 왔는지 추적  
+  - `request_url`: 방문한 경로  
+  - `http_method`: GET/POST 등의 요청 방식  
+  - `session_id`: Django 세션을 활용한 방문자 식별  
+
+#### **2️⃣ GeoIP2 데이터베이스 적용**  
+- **GeoLite2 데이터베이스**를 이용하여 **방문자의 국가 및 도시 정보 자동 저장**  
+- `pip install maxminddb-geolite2` 패키지 추가  
+- `/usr/share/GeoIP/GeoLite2-City.mmdb` 데이터베이스 설정 (`settings.py` 반영)  
+- `8.8.8.8`, `1.1.1.1` 같은 공인 IP로 국가/도시 정보 테스트 가능  
+
+#### **3️⃣ 프록시 환경 고려한 클라이언트 IP 추출 개선**  
+- 기존 `get_client_ip()` 함수에서 `X-Forwarded-For`와 `X-Real-IP` 지원 추가  
+- 사설 IP(`172.x.x.x`, `192.168.x.x`)의 경우 `"Private Network"`로 기록하여 구분  
+
+#### **4️⃣ WSL에서 `/mnt/` 관련 문제 해결**  
+- WSL에서 `E:` 드라이브가 자동 마운트되지 않는 문제 해결  
+- `/etc/wsl.conf` 파일 수정하여 **자동 마운트 활성화**  
+  ```ini
+  [automount]
+  enabled = true
+  root = /mnt/
+  options = "metadata,umask=22,fmask=11"
+  ```
+- `sudo mount -t drvfs E: /mnt/e` 명령어 추가  
+- WSL 종료 후 재시작 (`wsl --shutdown && wsl`)  
+
+---
+
+### **✅ 버그 수정 및 성능 개선**  
+- `request_url` 필드 추가 시 **마이그레이션 기본값 설정 오류 해결**  
+- `/mnt/e/내보내기/` 경로 오류 해결을 위한 `wsl.conf` 설정 가이드 포함  
+- **세션 ID 기록을 통해 동일 방문자 세션 추적 가능**  
+
+---
+
 ## **📈 향후 계획 (Backlog)**  
-✅ **Version 1.2** (UI 개선 및 사용자 기능 추가)  
+✅ **Version 1.0.4** (UI 개선 및 사용자 기능 추가)  
 🔹 파일 정렬 및 필터 기능 추가  
 🔹 검색 기능 추가  
 🔹 **카카오톡 친구 목록 API 활용하여 특정 사용자만 다운로드 가능하도록 제한**  
 🔹 **RESTful API 지원 (파일 업로드 및 다운로드 API 제공)**  
+🔹 방문자 로그 검색 및 필터 기능 추가  
+🔹 관리자 페이지에서 **방문자 기록 대시보드** 제공  
+🔹 `/mnt/` 디렉토리 접근 개선 및 자동화 스크립트 추가  
 
 
 ---

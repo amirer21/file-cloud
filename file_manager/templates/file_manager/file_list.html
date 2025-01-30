@@ -238,6 +238,8 @@
 
         <form method="POST" action="/download-selected/">
             {% csrf_token %}
+            <input type="hidden" name="selected_category" id="selected-category" value="4waves"> <!-- 기본값 설정 -->
+
             <div class="controls">
                 <button type="button" id="select-all">전체 선택</button>
                 <button type="button" id="deselect-all">전체 선택 해제</button>
@@ -291,6 +293,7 @@
         // 탭 클릭 시 필터링
         const tabs = document.querySelectorAll('.tab');
         let activeCategory = "4waves"; // 기본값: "4waves"
+        const selectedCategoryInput = document.getElementById("selected-category");
 
         // Select All
         selectAllButton.addEventListener("click", () => {
@@ -376,6 +379,8 @@
 
                 // 현재 활성화된 탭의 카테고리 업데이트
                 activeCategory = tab.dataset.category;
+                // 선택된 카테고리를 서버로 전송
+                selectedCategoryInput.value = tab.dataset.category;
 
                 // 체크박스 초기화
                 gridItems.forEach(item => {

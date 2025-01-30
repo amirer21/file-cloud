@@ -70,17 +70,25 @@ def protected_download_list(request):
 
     
 
+from django.utils.timezone import localtime
+
 def download_selected(request):
     if request.method != "POST":
         return HttpResponse("Invalid request method", status=400)
 
     try:
         selected_images = request.POST.getlist("selected_images")
+        selected_category = request.POST.get("selected_category", "unknown")  # 선택된 탭 가져오기
         base_dir = "/home/hong/python-workspace/file-cloud/staticfiles"
 
         if not selected_images:
             return HttpResponse("No files selected.", status=400)
 
+        # 현재 시간 기반으로 파일명 생성
+        timestamp = localtime(now()).strftime("%Y%m%d_%H%M%S")
+        zip_filename = f"{selected_category}_{timestamp}.zip"
+
+        # 로그 기록
         ip_address = get_client_ip(request)
         user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
         file_names = ", ".join(selected_images)
@@ -92,6 +100,7 @@ def download_selected(request):
             user_agent=user_agent,
         )
 
+        # 파일 압축
         zip_buffer = BytesIO()
         with ZipFile(zip_buffer, "w") as zip_file:
             for image_path in selected_images:
@@ -103,7 +112,7 @@ def download_selected(request):
 
         zip_buffer.seek(0)
         response = HttpResponse(zip_buffer, content_type="application/zip")
-        response["Content-Disposition"] = "attachment; filename=selected_images.zip"
+        response["Content-Disposition"] = f'attachment; filename="{zip_filename}"'
         return response
     except DatabaseError as e:
         logger.error(f"Database error in download_selected: {e}")
@@ -111,7 +120,6 @@ def download_selected(request):
     except Exception as e:
         logger.error(f"Unexpected error in download_selected: {e}")
         return HttpResponse("An error occurred while processing your request.", status=500)
-
 
 
 

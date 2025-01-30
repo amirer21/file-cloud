@@ -24,87 +24,67 @@ BASE_DIR = "/mnt/e/내보내기/2025-01-피아노"  # WSL에서의 실제 경로
 
 
 def login_view(request):
-    return render(request, 'login.html')  # 간단한 로그인 페이지
-    
+    try:
+        return render(request, 'login.html')
+    except Exception as e:
+        logger.error(f"Unexpected error in login_view: {e}")
+        return HttpResponse("An error occurred while rendering the login page.", status=500)
+
 
 @login_required
 def protected_download_list(request):
-    log_visitor(request)  # 방문자 정보 저장
-    kakao_token = request.user.social_auth.get(provider='kakao').extra_data.get('access_token', None)
+    try:
+        log_visitor(request)
+        
+        kakao_token = request.user.social_auth.get(provider='kakao').extra_data.get('access_token', None)
+        if not kakao_token:
+            return render(request, 'file_manager/unauthorized.html', {
+                'error_message': 'Kakao authentication failed. Please log in again.'
+            }, status=403)
 
-    if not kakao_token:
-        return render(request, 'file_manager/unauthorized.html', {
-            'error_message': 'Kakao authentication failed. Please log in again.'
-        }, status=403)
+        image_dir = '/home/hong/python-workspace/file-cloud/static/images/'
+        categories = ["4waves", "hoon", "hari", "jaelin", "soyeon"]
+        images_by_category = {}
 
-    # 이미지 루트 디렉터리 설정
-    image_dir = '/home/hong/python-workspace/file-cloud/static/images/'
-    categories = ["4waves", "hoon", "hari", "jaelin", "soyeon"]  # 탭에 해당하는 폴더 이름
+        for category in categories:
+            category_path = join(image_dir, category)
+            if isdir(category_path):
+                try:
+                    images_by_category[category] = [
+                        f for f in listdir(category_path) 
+                        if isfile(join(category_path, f)) and f.endswith(('.jpg', '.png', '.gif'))
+                    ]
+                except OSError as e:
+                    logger.error(f"Error accessing category {category}: {e}")
+                    images_by_category[category] = []
+            else:
+                images_by_category[category] = []
 
-    # 카테고리별 이미지 리스트 저장
-    images_by_category = {}
+        return render(request, 'file_manager/file_list.html', {
+            'user': request.user,
+            'images_by_category': images_by_category
+        })
+    except Exception as e:
+        logger.error(f"Unexpected error in protected_download_list: {e}")
+        return HttpResponse("An error occurred while processing your request.", status=500)
 
-    # 각 카테고리 폴더에서 이미지 수집
-    for category in categories:
-        category_path = join(image_dir, category)
-        if isdir(category_path):  # 폴더가 존재하면
-            images_by_category[category] = [
-                f for f in listdir(category_path) 
-                if isfile(join(category_path, f)) and f.endswith(('.jpg', '.png', '.gif'))
-            ]
-        else:
-            images_by_category[category] = []  # 폴더가 없으면 빈 리스트
-
-    # 분류되지 않은 루트 이미지를 추가
-    # images_by_category["root"] = [
-    #     f for f in listdir(image_dir) 
-    #     if isfile(join(image_dir, f)) and f.endswith(('.jpg', '.png', '.gif'))
-    # ]
-
-    # 렌더링
-    return render(request, 'file_manager/file_list.html', {
-        'user': request.user,
-        'images_by_category': images_by_category  # 카테고리별 이미지 전달
-    })
     
 
-# @login_required
-# def download_list(request):
-#     # 정적 파일 디렉터리에서 이미지 가져오기
-#     image_dir = os.path.join(settings.STATIC_ROOT, 'images')
-#     print(f"Image directory: {image_dir}")
-#     images = [f for f in listdir(image_dir) if f.endswith(('.jpg', '.png', '.gif'))]
-#     print(f"Images: {images}")
-#     return render(request, 'file_manager/file_list.html', {
-#         'images': images  # 이미지 파일 이름 리스트 반환
-#     })
-
-
-# def file_list(request):
-#     # 정적 파일 디렉터리에서 이미지 가져오기
-#     image_dir = os.path.join(settings.STATIC_ROOT, 'images')
-#     print(f"Image directory: {image_dir}")
-#     images = [f for f in listdir(image_dir) if f.endswith(('.jpg', '.png', '.gif'))]
-#     print(f"Images: {images}")
-#     return render(request, 'file_manager/file_list.html', {
-#         'images': images  # 이미지 파일 이름 리스트 반환
-#     })
-
 def download_selected(request):
-    if request.method == "POST":
-        selected_images = request.POST.getlist("selected_images")
+    if request.method != "POST":
+        return HttpResponse("Invalid request method", status=400)
 
-        # 실제 파일이 저장된 디렉터리
+    try:
+        selected_images = request.POST.getlist("selected_images")
         base_dir = "/home/hong/python-workspace/file-cloud/staticfiles"
 
-        # 선택된 파일이 없을 경우 오류 메시지 반환
         if not selected_images:
             return HttpResponse("No files selected.", status=400)
 
-        # 사용자 로그 기록
         ip_address = get_client_ip(request)
         user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
-        file_names = ", ".join(selected_images)  # 쉼표로 파일 이름 연결
+        file_names = ", ".join(selected_images)
+
         UserActionLog.objects.create(
             ip_address=ip_address,
             action_type="Download",
@@ -112,64 +92,97 @@ def download_selected(request):
             user_agent=user_agent,
         )
 
-        # ZIP 파일 생성
         zip_buffer = BytesIO()
         with ZipFile(zip_buffer, "w") as zip_file:
             for image_path in selected_images:
-                full_path = os.path.join(base_dir, image_path)  # 실제 파일 경로 생성
+                full_path = os.path.join(base_dir, image_path)
                 if os.path.exists(full_path):
-                    zip_file.write(full_path, arcname=os.path.basename(full_path))  # 파일 이름만 포함
+                    zip_file.write(full_path, arcname=os.path.basename(full_path))
                 else:
-                    logger.warning(f"File not found: {full_path}")  # 파일이 없을 경우 경고 로그
+                    logger.warning(f"File not found: {full_path}")
 
         zip_buffer.seek(0)
         response = HttpResponse(zip_buffer, content_type="application/zip")
         response["Content-Disposition"] = "attachment; filename=selected_images.zip"
         return response
+    except DatabaseError as e:
+        logger.error(f"Database error in download_selected: {e}")
+        return HttpResponse("An error occurred while logging user action.", status=500)
+    except Exception as e:
+        logger.error(f"Unexpected error in download_selected: {e}")
+        return HttpResponse("An error occurred while processing your request.", status=500)
 
-    return HttpResponse("Invalid request method", status=400)
 
 
 
 def gallery(request):
-    log_visitor(request)  # 방문자 정보 저장
-    return render(request, 'file_manager/gallery.html')
+    try:
+        log_visitor(request)
+        return render(request, 'file_manager/gallery.html')
+    except Exception as e:
+        logger.error(f"Unexpected error in gallery: {e}")
+        return HttpResponse("An error occurred while rendering the gallery.", status=500)
+
 
 
 def gallery_view(request):
-    # 이미지 파일이 있는 실제 경로
-    images_folder = '/home/hong/python-workspace/file-cloud/images'
-    
-    # 'DSC_'로 시작하고 '.jpg'로 끝나는 파일 필터링
-    all_images = [f for f in os.listdir(images_folder) if f.startswith('DSC_') and f.endswith('.jpg')]
-    
-    # 이미지 URL을 생성할 수 있도록 절대 경로 전달
-    context = {
-        'images': all_images,
-        'image_base_url': '/static/images/',  # 수정 후 여기에 실제 정적 파일 경로와 일치하게 설정
-    }
-    return render(request, 'file_manager/gallery.html', context)
+    try:
+        log_visitor(request)
+        images_folder = '/home/hong/python-workspace/file-cloud/images'
 
+        try:
+            all_images = [f for f in os.listdir(images_folder) if f.startswith('DSC_') and f.endswith('.jpg')]
+        except FileNotFoundError:
+            logger.error(f"Image directory not found: {images_folder}")
+            all_images = []
+        except OSError as e:
+            logger.error(f"OS error accessing image directory: {e}")
+            all_images = []
+
+        context = {
+            'images': all_images,
+            'image_base_url': '/static/images/',
+        }
+        return render(request, 'file_manager/gallery.html', context)
+    except Exception as e:
+        logger.error(f"Unexpected error in gallery_view: {e}")
+        return HttpResponse("An error occurred while processing the gallery view.", status=500)
 
 def log_visitor(request: HttpRequest):
     """ 방문자 정보를 기록하는 함수 """
-    ip_address = get_client_ip(request)
-    user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+    try:
+        ip_address = get_client_ip(request)
+        user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
 
-    # 데이터베이스에 저장
-    VisitorLog.objects.create(ip_address=ip_address, user_agent=user_agent, visit_time=now())
-
+        VisitorLog.objects.create(ip_address=ip_address, user_agent=user_agent, visit_time=now())
+    except IntegrityError as e:
+        logger.error(f"Database integrity error in log_visitor: {e}")
+    except DatabaseError as e:
+        logger.error(f"Database error in log_visitor: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error in log_visitor: {e}")
 
 def get_client_ip(request):
-    """ 사용자의 실제 IP 주소 가져오기 """
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+    """클라이언트의 실제 IP 주소를 가져오는 함수"""
+    try:
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    except Exception as e:
+        logger.error(f"Error getting client IP: {e}")
+        return "Unknown"
 
 def visitor_logs(request):
-    visitor_logs = VisitorLog.objects.order_by("-visit_time")[:50]
-    user_logs = UserActionLog.objects.order_by("-action_time")[:50]
-    return render(request, "file_manager/visitor_logs.html", {"visitor_logs": visitor_logs, "user_logs": user_logs})
+    try:
+        visitor_logs = VisitorLog.objects.order_by("-visit_time")[:50]
+        user_logs = UserActionLog.objects.order_by("-action_time")[:50]
+        return render(request, "file_manager/visitor_logs.html", {"visitor_logs": visitor_logs, "user_logs": user_logs})
+    except DatabaseError as e:
+        logger.error(f"Database error in visitor_logs: {e}")
+        return HttpResponse("An error occurred while retrieving logs.", status=500)
+    except Exception as e:
+        logger.error(f"Unexpected error in visitor_logs: {e}")
+        return HttpResponse("An error occurred while processing your request.", status=500)

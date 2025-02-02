@@ -184,11 +184,6 @@
         }
 
         /* 다운로드 버튼 스타일 */
-        .button-container {
-            margin: 30px 0;
-            text-align: center;
-        }
-
         .download-button {
             display: inline-block;
             padding: 15px 30px;
@@ -206,6 +201,33 @@
             background-color: #f2c200;
             transform: scale(1.1);
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        /* 로그아웃 버튼 스타일 추가 */
+        .logout-button {
+            display: inline-block;
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            background-color: #ff4d4d; /* 붉은색 (로그아웃 버튼) */
+            text-decoration: none;
+            border-radius: 10px;
+            transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            margin-left: 20px; /* 로그인 버튼과 간격 추가 */
+        }
+
+        .logout-button:hover {
+            background-color: #e60000; /* hover 시 더 진한 붉은색 */
+            transform: scale(1.1);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        /* 버튼 컨테이너 정렬 */
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
         }
 
         .footer {
@@ -318,6 +340,12 @@
             }
             return "";
         }
+
+        function clearCache() {
+            sessionStorage.clear();  // 세션 스토리지 클리어
+            localStorage.clear();  // 로컬 스토리지 클리어
+            window.location.reload(true);  // 강제 새로고침 (캐시 무효화)
+        }
     </script>
 </head>
 <body>
@@ -328,8 +356,8 @@
             <button class="close-btn" onclick="closeNotice()">✖</button>
         </div>
         <div class="modal-content">
-            <p>⚠️ 새벽(자는 시간)에는 서버를 종료하고, 
-                <br> 오전, 오후에는 켜두겠습니다.</p>
+            <p>⚠️ 서버 사용 시간 : 오전, 오후 
+                <br> 서버 종료 시간 : 새벽(자는 시간)</p>
         </div>
         <div class="modal-footer">
             <label>
@@ -342,8 +370,16 @@
     <h1>4 Waves : Classical Concert Gallery</h1>
     
     <div class="button-container">
-        <a href="{% url 'social:begin' 'kakao' %}" class="download-button">Download Gallery</a>
+        {% if user.is_authenticated %}
+            <!-- 로그인한 경우 -->
+            <a href="{% url 'download_list' %}" class="download-button">Download List</a>
+            <a href="{% url 'logout' %}" class="logout-button">Logout</a>
+        {% else %}
+            <!-- 로그인하지 않은 경우 -->
+            <a href="{% url 'social:begin' 'kakao' %}" class="download-button" onclick="clearCache()">Download (Login with Kakao)</a>
+        {% endif %}
     </div>
+    
 
     <div class="image-container">
         <img src="{% static 'images/gallery_main.jpg' %}" alt="Main Gallery Image">
@@ -369,7 +405,7 @@
 <!-- 웹 버전 및 개발자 정보 -->
 <footer class="footer">
     <div class="footer-content">
-        <p>📌 <strong>Version : </strong> v1.0.3</p>
+        <p>📌 <strong>Version : </strong> v1.0.4</p>
         <p>💻 <strong>Software Engineer :</strong> Seunghak Hong </p>
         <p>🐙 <strong>GitHub : </strong> <a href="https://github.com/amirer21/file-cloud" target="_blank">github.com/amirer21</a></p>
         <p>✍ <strong>Blog : </strong> <a href="https://amirer21.github.io/" target="_blank">amirer21.github.io</a></p>

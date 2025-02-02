@@ -392,13 +392,32 @@
                 });
             });
         });
+
+        /* 세션 만료 시간 설정 */
+        let logoutTime = 30 * 60 * 1000;  // 30분 (1800초)
+        let timeout;
+
+        function resetTimer() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+                window.location.href = "/accounts/logout/";  // Django 로그아웃 URL
+            }, logoutTime);
+        }
+
+        // 마우스 움직임 또는 키 입력이 있을 때 타이머 리셋
+        document.addEventListener("mousemove", resetTimer);
+        document.addEventListener("keydown", resetTimer);
+
+        resetTimer();
+        /* 세션 만료 시간 설정 끝 */
     </script>
 </body>
 
 <!-- 웹 버전 및 개발자 정보 -->
 <footer class="footer">
     <div class="footer-content">
-        <p>📌 <strong>Version : </strong> v1.0.3</p>
+        <p>📌 <strong>Version : </strong> v1.0.4</p>
         <p>💻 <strong>Software Engineer :</strong> Seunghak Hong </p>
         <p>🐙 <strong>GitHub : </strong> <a href="https://github.com/amirer21/file-cloud" target="_blank">github.com/amirer21</a></p>
         <p>✍ <strong>Blog : </strong> <a href="https://amirer21.github.io/" target="_blank">amirer21.github.io</a></p>

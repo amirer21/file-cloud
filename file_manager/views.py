@@ -19,6 +19,9 @@ from .models import VisitorLog
 from .models import UserActionLog
 from user_agents import parse
 from django.contrib.gis.geoip2 import GeoIP2
+from django.utils.timezone import localtime
+from django.contrib.auth import logout
+
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,48 @@ def login_view(request):
     except Exception as e:
         logger.error(f"Unexpected error in login_view: {e}")
         return HttpResponse("An error occurred while rendering the login page.", status=500)
+
+
+
+@login_required
+def logout_view(request):
+    """카카오 로그아웃 처리 후 Django 세션 삭제"""
+    try:
+        log_visitor(request)  # 방문 기록 저장
+
+        kakao_token = request.user.social_auth.get(provider='kakao').extra_data.get('access_token', None)
+        if kakao_token:
+            kakao_logout_url = "https://kapi.kakao.com/v1/user/logout"
+            headers = {
+                "Authorization": f"Bearer {kakao_token}",
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+            response = requests.post(kakao_logout_url, headers=headers)
+
+            if response.status_code != 200:
+                logger.error(f"Kakao logout API failed: {response.text}")
+
+        # Django 세션 로그아웃
+        logout(request)
+
+        # 세션 삭제 후 `cycle_key()`를 사용하여 새로운 세션을 유지
+        request.session.flush()
+        request.session.cycle_key()  # 새 세션 키 생성 (기존 OAuth state 값 유지)
+
+        # 캐시 방지 및 강제 리디렉트
+        response = redirect(settings.LOGOUT_REDIRECT_URL)
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
+
+    except Exception as e:
+        logger.error(f"Unexpected error in logout_view: {e}")
+        return render(request, 'file_manager/unauthorized.html', {
+            'error_message': 'An error occurred while logging out. Please try again.'
+        }, status=500)
+
+
 
 
 @login_required
@@ -73,7 +118,6 @@ def protected_download_list(request):
 
     
 
-from django.utils.timezone import localtime
 
 def download_selected(request):
     if request.method != "POST":

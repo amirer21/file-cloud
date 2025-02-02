@@ -30,7 +30,7 @@
 - **Backend**: Python, Django
 - **Frontend**: HTML, CSS, JavaScript
 - **Database**: SQLite (개발 환경) / PostgreSQL (배포 환경)
-- **Authentication**: Django Allauth (카카오톡 로그인)
+- **Authentication**: `social-auth-app-django` (카카오 OAuth 2.0)
 - **Deployment**: Nginx + Docker
 
 ---
@@ -51,6 +51,7 @@ file-cloud/
 ├── db.sqlite3             # SQLite 데이터베이스 파일
 ├── requirements.txt       # 의존성 패키지 리스트
 ```
+
 
 ---
 
@@ -274,6 +275,105 @@ python manage.py migrate
 ```
 - `makemigrations`: 모델 변경 사항을 감지하여 마이그레이션 파일을 생성합니다.
 - `migrate`: 생성된 마이그레이션 파일을 적용하여 데이터베이스를 변경합니다.
+
+---
+
+(2025.02.02 updated)
+
+## 📋 데이터베이스 모델
+
+### 1. **VisitorLog (방문자 로그)**
+
+방문자의 접속 정보를 기록하는 모델입니다.
+
+| 필드          | 설명                             |
+|---------------|--------------------------------|
+| `ip_address`  | 방문자의 IP 주소               |
+| `browser`     | 사용자의 브라우저 (예: Chrome) |
+| `operating_system` | 운영체제 정보 (예: Windows, Mac) |
+| `country`     | 접속 국가                      |
+| `city`        | 접속 도시                      |
+| `referer_url` | 사용자가 방문한 경로            |
+| `request_url` | 방문한 URL                     |
+| `http_method` | 요청 방식 (GET, POST 등)       |
+| `session_id`  | Django 세션 ID                 |
+| `visit_time`  | 방문 시간                      |
+
+```python
+class VisitorLog(models.Model):
+    ip_address = models.GenericIPAddressField(verbose_name="IP 주소")
+    browser = models.CharField(max_length=100, verbose_name="브라우저", blank=True)
+    operating_system = models.CharField(max_length=100, verbose_name="운영체제", blank=True)
+    country = models.CharField(max_length=50, verbose_name="접속 국가", blank=True)
+    city = models.CharField(max_length=100, verbose_name="접속 도시", blank=True)
+    referer_url = models.URLField(verbose_name="리퍼러 URL", blank=True, null=True)
+    request_url = models.TextField(verbose_name="요청한 URL", default="/")
+    http_method = models.CharField(max_length=10, verbose_name="요청 메서드", default="GET")
+    session_id = models.CharField(max_length=100, blank=True, verbose_name="세션 ID")
+    visit_time = models.DateTimeField(auto_now_add=True, verbose_name="방문 시간")
+```
+
+---
+
+### 2. **카카오 로그인 & 로그아웃 기능**
+✅ **로그아웃 버튼 추가 (`gallery.html`)**
+```html
+<div class="button-container">
+    {% if user.is_authenticated %}
+        <a href="{% url 'download_list' %}" class="download-button">Download List</a>
+        <a href="{% url 'logout' %}" class="logout-button">Logout</a>
+    {% else %}
+        <a href="{% url 'social:begin' 'kakao' %}" class="download-button">Login with Kakao</a>
+    {% endif %}
+</div>
+```
+
+✅ **로그아웃 API 구현 (`file_manager/views.py`)**
+```python
+import requests
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def logout_view(request):
+    """카카오 로그아웃 처리 후 Django 세션 삭제"""
+    try:
+        kakao_token = request.user.social_auth.get(provider='kakao').extra_data.get('access_token', None)
+        if kakao_token:
+            kakao_logout_url = "https://kapi.kakao.com/v1/user/logout"
+            headers = {
+                "Authorization": f"Bearer {kakao_token}",
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+            requests.post(kakao_logout_url, headers=headers)
+
+        logout(request)
+        return redirect('/')
+
+    except Exception as e:
+        print(f"Kakao logout error: {e}")
+        return redirect('/')
+```
+
+✅ **Django URL 설정 (`file_manager/urls.py`)**
+```python
+urlpatterns = [
+    path('logout/', views.logout_view, name='logout'),
+]
+```
+
+---
+
+## ✅ 향후 개선 예정 (Backlog)
+✅ **Version 1.0.4** (UI 개선 및 사용자 기능 추가)  
+🔹 **파일 정렬 및 필터 기능 추가**  
+🔹 **검색 기능 추가**  
+🔹 **카카오톡 친구 목록 API 활용하여 특정 사용자만 다운로드 가능하도록 제한**  
+🔹 **RESTful API 지원 (파일 업로드 및 다운로드 API 제공)**  
+🔹 **방문자 로그 검색 및 필터 기능 추가**  
+🔹 **관리자 페이지에서 방문자 기록 대시보드 제공**  
 
 ---
 

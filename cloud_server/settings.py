@@ -56,6 +56,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'file_manager.middleware.AutoLogoutMiddleware', # 로그아웃 미들웨어 추가
 ]
 
 ROOT_URLCONF = 'cloud_server.urls'
@@ -148,7 +149,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SOCIAL_AUTH_KAKAO_KEY = 'MY_KAKAO_APP_KEY'
-SOCIAL_AUTH_KAKAO_REDIRECT_URI = 'http://www.devmiro.co.kr/accounts/complete/kakao/'
+SOCIAL_AUTH_KAKAO_REDIRECT_URI = 'https://www.devmiro.co.kr/accounts/complete/kakao/'
 SOCIAL_AUTH_KAKAO_SCOPE = ['friends']
 
 
@@ -158,8 +159,21 @@ LOGIN_REDIRECT_URL = '/download-list/'  # 로그인 성공 후 이동할 URL
 LOGOUT_REDIRECT_URL = '/'  # 로그아웃 후 이동할 URL
 SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error/'  # 로그인 오류 시 이동할 URL
 
+# 세션이 유지되는 시간 (초 단위)
+SESSION_COOKIE_AGE = 1800  # 30분 (1800초)
+
+# 브라우저가 닫히면 세션 삭제 (False일 경우 쿠키가 유지됨)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# HTTPS 사용 여부 (개발 환경에서는 False)
+SESSION_COOKIE_SECURE = False  # HTTPS 사용 시 보안 강화
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_SAVE_EVERY_REQUEST = True  # 요청마다 세션 갱신 (state 값 유지)
+
 # HTTPS 강제 여부 (개발 환경에서는 False)
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = False
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = False  # HTTPS 환경에서 OAuth state 값 유지
+SOCIAL_AUTH_KAKAO_STATE_PARAMETER = True  # state 값 유지 설정
+SOCIAL_AUTH_KAKAO_AUTH_EXTRA_ARGUMENTS = {"prompt": "login"}  # 항상 로그인 창을 띄우도록 설정
 
 SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',       # 소셜 사용자 세부정보 가져오기
@@ -179,3 +193,20 @@ def activate_user(backend, user, response, *args, **kwargs):
     if user:
         user.is_active = True
         user.save()
+
+
+GEOIP_PATH = '/usr/share/GeoIP/'
+
+
+# Django가 특정 URL을 무시하도록 설정
+ACME_CHALLENGE_URL = '/.well-known/acme-challenge/'
+
+def skip_acme_challenge(get_response):
+    def middleware(request):
+        if request.path.startswith(ACME_CHALLENGE_URL):
+            from django.http import HttpResponse
+            return HttpResponse("ACME challenge bypassed.", status=200)
+        return get_response(request)
+    return middleware
+
+MIDDLEWARE.insert(0, 'cloud_server.settings.skip_acme_challenge')

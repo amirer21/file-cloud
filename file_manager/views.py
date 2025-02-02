@@ -12,10 +12,16 @@ from io import BytesIO
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.utils.timezone import now
+from django.core.paginator import Paginator
 import requests
 import logging
 from .models import VisitorLog
 from .models import UserActionLog
+from user_agents import parse
+from django.contrib.gis.geoip2 import GeoIP2
+from django.utils.timezone import localtime
+from django.contrib.auth import logout
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +35,48 @@ def login_view(request):
     except Exception as e:
         logger.error(f"Unexpected error in login_view: {e}")
         return HttpResponse("An error occurred while rendering the login page.", status=500)
+
+
+
+@login_required
+def logout_view(request):
+    """카카오 로그아웃 처리 후 Django 세션 삭제"""
+    try:
+        log_visitor(request)  # 방문 기록 저장
+
+        kakao_token = request.user.social_auth.get(provider='kakao').extra_data.get('access_token', None)
+        if kakao_token:
+            kakao_logout_url = "https://kapi.kakao.com/v1/user/logout"
+            headers = {
+                "Authorization": f"Bearer {kakao_token}",
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+            response = requests.post(kakao_logout_url, headers=headers)
+
+            if response.status_code != 200:
+                logger.error(f"Kakao logout API failed: {response.text}")
+
+        # Django 세션 로그아웃
+        logout(request)
+
+        # 세션 삭제 후 `cycle_key()`를 사용하여 새로운 세션을 유지
+        request.session.flush()
+        request.session.cycle_key()  # 새 세션 키 생성 (기존 OAuth state 값 유지)
+
+        # 캐시 방지 및 강제 리디렉트
+        response = redirect(settings.LOGOUT_REDIRECT_URL)
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
+
+    except Exception as e:
+        logger.error(f"Unexpected error in logout_view: {e}")
+        return render(request, 'file_manager/unauthorized.html', {
+            'error_message': 'An error occurred while logging out. Please try again.'
+        }, status=500)
+
+
 
 
 @login_required
@@ -70,7 +118,6 @@ def protected_download_list(request):
 
     
 
-from django.utils.timezone import localtime
 
 def download_selected(request):
     if request.method != "POST":
@@ -156,19 +203,60 @@ def gallery_view(request):
         logger.error(f"Unexpected error in gallery_view: {e}")
         return HttpResponse("An error occurred while processing the gallery view.", status=500)
 
+
 def log_visitor(request: HttpRequest):
     """ 방문자 정보를 기록하는 함수 """
     try:
         ip_address = get_client_ip(request)
-        user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+        user_agent_str = request.META.get('HTTP_USER_AGENT', 'Unknown')
 
-        VisitorLog.objects.create(ip_address=ip_address, user_agent=user_agent, visit_time=now())
+        # User-Agent 분석
+        user_agent = parse(user_agent_str)
+        browser = user_agent.browser.family if user_agent.browser.family else "Unknown"
+        operating_system = user_agent.os.family if user_agent.os.family else "Unknown"
+
+        # GeoIP를 사용하여 위치 정보 가져오기
+        country, city = "Unknown", "Unknown"
+        try:
+            geo = GeoIP2()
+            location = geo.city(ip_address)
+            country = location.get("country_name", "Unknown")
+            city = location.get("city", "Unknown")
+        except Exception as e:
+            logger.error(f"GeoIP lookup error: {e}")
+
+        # 기타 요청 정보
+        referer_url = request.META.get('HTTP_REFERER', '')
+        request_url = request.path
+        http_method = request.method
+        session_id = request.session.session_key if request.session.session_key else ""
+
+        # 로그인한 사용자 정보 (익명 사용자라면 None)
+        user = request.user if request.user.is_authenticated else None
+
+        # 방문 로그 저장
+        VisitorLog.objects.create(
+            ip_address=ip_address,
+            user_agent=user_agent_str,
+            browser=browser,
+            operating_system=operating_system,
+            country=country,
+            city=city,
+            referer_url=referer_url,
+            request_url=request_url,
+            http_method=http_method,
+            session_id=session_id,
+            user=user,
+            visit_time=now()
+        )
+
     except IntegrityError as e:
         logger.error(f"Database integrity error in log_visitor: {e}")
     except DatabaseError as e:
         logger.error(f"Database error in log_visitor: {e}")
     except Exception as e:
         logger.error(f"Unexpected error in log_visitor: {e}")
+
 
 def get_client_ip(request):
     """클라이언트의 실제 IP 주소를 가져오는 함수"""
@@ -183,11 +271,27 @@ def get_client_ip(request):
         logger.error(f"Error getting client IP: {e}")
         return "Unknown"
 
+
 def visitor_logs(request):
     try:
-        visitor_logs = VisitorLog.objects.order_by("-visit_time")[:50]
-        user_logs = UserActionLog.objects.order_by("-action_time")[:50]
-        return render(request, "file_manager/visitor_logs.html", {"visitor_logs": visitor_logs, "user_logs": user_logs})
+        visitor_logs_qs = VisitorLog.objects.order_by("-visit_time")
+        user_logs_qs = UserActionLog.objects.order_by("-action_time")
+
+        # 페이징 처리 (한 페이지에 50개씩)
+        visitor_paginator = Paginator(visitor_logs_qs, 50)
+        user_paginator = Paginator(user_logs_qs, 50)
+        
+        visitor_page_number = request.GET.get("visitor_page", 1)
+        user_page_number = request.GET.get("user_page", 1)
+
+        visitor_logs = visitor_paginator.get_page(visitor_page_number)
+        user_logs = user_paginator.get_page(user_page_number)
+
+        return render(request, "file_manager/visitor_logs.html", {
+            "visitor_logs": visitor_logs,
+            "user_logs": user_logs
+        })
+
     except DatabaseError as e:
         logger.error(f"Database error in visitor_logs: {e}")
         return HttpResponse("An error occurred while retrieving logs.", status=500)

@@ -184,11 +184,6 @@
         }
 
         /* 다운로드 버튼 스타일 */
-        .button-container {
-            margin: 30px 0;
-            text-align: center;
-        }
-
         .download-button {
             display: inline-block;
             padding: 15px 30px;
@@ -206,6 +201,33 @@
             background-color: #f2c200;
             transform: scale(1.1);
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        /* 로그아웃 버튼 스타일 추가 */
+        .logout-button {
+            display: inline-block;
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            background-color: #ff4d4d; /* 붉은색 (로그아웃 버튼) */
+            text-decoration: none;
+            border-radius: 10px;
+            transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            margin-left: 20px; /* 로그인 버튼과 간격 추가 */
+        }
+
+        .logout-button:hover {
+            background-color: #e60000; /* hover 시 더 진한 붉은색 */
+            transform: scale(1.1);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        /* 버튼 컨테이너 정렬 */
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
         }
 
         .footer {
@@ -235,14 +257,129 @@
             text-decoration: underline;
         }
 
+        /* 안내창 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.5);
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            font-size: 16px;
+        }
+
+        .modal-footer {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-footer button {
+            background: #ffd700;
+            color: black;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .modal-footer button:hover {
+            background: #f2c200;
+        }
+
+        .modal-footer input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
     </style>
+
+     <!-- 안내창 관련 스크립트 -->
+     <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // 쿠키에서 안내창 숨김 여부 확인
+            if (!getCookie("hideNotice")) {
+                document.getElementById("noticeModal").style.display = "block";
+            }
+        });
+
+        function closeNotice() {
+            let hideForDay = document.getElementById("hideForDay").checked;
+            if (hideForDay) {
+                setCookie("hideNotice", "true", 1); // 1일 동안 저장
+            }
+            document.getElementById("noticeModal").style.display = "none";
+        }
+
+        function setCookie(name, value, days) {
+            let date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            let expires = "expires=" + date.toUTCString();
+            document.cookie = name + "=" + value + "; " + expires + "; path=/";
+        }
+
+        function getCookie(name) {
+            let decodedCookie = decodeURIComponent(document.cookie);
+            let cookies = decodedCookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                let c = cookies[i].trim();
+                if (c.indexOf(name + "=") === 0) {
+                    return c.substring(name.length + 1);
+                }
+            }
+            return "";
+        }
+
+        function clearCache() {
+            sessionStorage.clear();  // 세션 스토리지 클리어
+            localStorage.clear();  // 로컬 스토리지 클리어
+            window.location.reload(true);  // 강제 새로고침 (캐시 무효화)
+        }
+    </script>
 </head>
 <body>
+    <!-- 윈도우 스타일 안내 모달 -->
+    <div id="noticeModal" class="modal">
+        <div class="modal-header">
+            <span>📢 서버 운영 안내</span>
+            <button class="close-btn" onclick="closeNotice()">✖</button>
+        </div>
+        <div class="modal-content">
+            <p>⚠️ 서버 사용 시간 : 오전, 오후 
+                <br> 서버 종료 시간 : 새벽(자는 시간)</p>
+        </div>
+        <div class="modal-footer">
+            <label>
+                <input type="checkbox" id="hideForDay"> 하루 동안 보지 않기
+            </label>
+            <button class="confirm-btn" onclick="closeNotice()">닫기</button>
+        </div>
+    </div>
+
     <h1>4 Waves : Classical Concert Gallery</h1>
     
     <div class="button-container">
-        <a href="{% url 'social:begin' 'kakao' %}" class="download-button">Download Gallery</a>
+        {% if user.is_authenticated %}
+            <!-- 로그인한 경우 -->
+            <a href="{% url 'download_list' %}" class="download-button">Download List</a>
+            <a href="{% url 'logout' %}" class="logout-button">Logout</a>
+        {% else %}
+            <!-- 로그인하지 않은 경우 -->
+            <a href="{% url 'social:begin' 'kakao' %}" class="download-button" onclick="clearCache()">Download (Login with Kakao)</a>
+        {% endif %}
     </div>
+    
 
     <div class="image-container">
         <img src="{% static 'images/gallery_main.jpg' %}" alt="Main Gallery Image">
@@ -268,7 +405,7 @@
 <!-- 웹 버전 및 개발자 정보 -->
 <footer class="footer">
     <div class="footer-content">
-        <p>📌 <strong>Version : </strong> v1.0.0</p>
+        <p>📌 <strong>Version : </strong> v1.0.4</p>
         <p>💻 <strong>Software Engineer :</strong> Seunghak Hong </p>
         <p>🐙 <strong>GitHub : </strong> <a href="https://github.com/amirer21/file-cloud" target="_blank">github.com/amirer21</a></p>
         <p>✍ <strong>Blog : </strong> <a href="https://amirer21.github.io/" target="_blank">amirer21.github.io</a></p>
